@@ -1,0 +1,77 @@
+
+JePhCort v1.0
+Sept,02 2013
+
+NOTE: The PDF manual in this directory contains all the information contained
+in this text file, plus much more!
+
+______________________________________________________________________________
+
+SUMMARY:
+	1) Requirements
+	2) Installing Dependencies
+		I) python dependancies
+		II) R dependancies
+	3) Compilation
+	4) USAGE
+
+______________________________________________________________________________
+
+> 1) Requirements
+
+	JePhCort is a combination of python and R scripts. Current version can be run
+on any Ubuntu based system with minimum of single free core and 1Gb or RAM.
+
+------------------------------------------------------------------------------
+
+> 2) Installing Dependencies
+
+	I) python packages: 
+
+		FROM SYNAPTIC PACKAGE MANAGER:
+			a) Mark for installation: python-setuptools, python-numpy, python-qt4, 
+			python-scipy, python-mysqldb, python-lxml, python-rpy2
+			b) Hit apply.
+
+			NOTE: ete2 is not available throught synaptic package manager. 
+			To install ete2, Download ete2 packages from http://ete.cgenomics.org,
+			and compile as per their instructions.
+		
+				===== OR ======
+
+		FROM TERMINAL:
+
+			$sudo apt-get install python python-setuptools python-numpy python-qt4 python-scipy python-mysqldb python-lxml python-rpy2
+			$sudo easy_install -U ete2
+		
+	II) R packages
+		
+		OPEN "R" WITH ADMINISTRATIVE PREVILEDGES IN TERMINAL:
+			$sudo R
+			>install.packages("ape")
+			>install.packages("igraph")
+			>install.packages("quadprog")
+			>install.packages("phangorn")
+
+---------------------------------------------------------------------------------
+
+> 3) Compilation
+
+	JePhCort PACKAGE DO NOT REQUIRE ANY KIND OF COMPILATION.
+	ONCE THE DEPENDANCIES ARE SATISFIED, MAIN SCRIPTS ARE STANDALONE.
+
+---------------------------------------------------------------------------------
+
+> 4) Usage
+
+	Running JePhCort using the terminal
+		
+		Step 1. Reconstructing ancestral genotype given the sequence and newick tree file
+
+			$Rscript resurrect.R <alignment_seq_file> <newick_tree_file> <fasta/phylip>
+
+		Setp 2. Reconstructing ancestral phenotype and performing correlation
+
+			$python reanimate.py -s <alignment_seq_file> -t <newick_tree_file> -i 1500 -f <fasta/phylip> -p <phenotype_file> -o <output_file.pvalue>
+
+
