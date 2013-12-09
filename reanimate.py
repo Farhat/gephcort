@@ -17,42 +17,42 @@ from rpy2.robjects.packages import importr
 ###############################################################################
 
 def main(argv):
-	global seq, intree, seq_format, iterations, phen, out
+    global seq, intree, seq_format, iterations, phen, out
 
-	try:
-		opts, args = getopt.getopt(argv, "hs:t:f:i:p:o:", ['seq=', 'intree=', 'seq_format=', 'iterations=', 'phen=', 'out='])
-	except getopt.GetoptError:
-		print "\n USAGE: phenotype_reconstruction_and_correlation.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -o <output_file> \n \n \t --seq, -s : SNP sequence file [seq] \n \t --tree, -t : Newick tree [tree] \n \t --seq_format, -f : SNP sequence file format (phylip/fasta) [format] \n \t --iter, -i : Phenotype shuffling iterations [iter] \n \t --phen, -p : Custom format phenotype file [phen] \n \t --out, -o : Outputfile redirective (not recommanded) [out]"
+    try:
+        opts, args = getopt.getopt(argv, "hs:t:f:i:p:o:", ['seq=', 'intree=', 'seq_format=', 'iterations=', 'phen=', 'out='])
+    except getopt.GetoptError:
+        print "\n USAGE: phenotype_reconstruction_and_correlation.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -o <output_file> \n \n \t --seq, -s : SNP sequence file [seq] \n \t --tree, -t : Newick tree [tree] \n \t --seq_format, -f : SNP sequence file format (phylip/fasta) [format] \n \t --iter, -i : Phenotype shuffling iterations [iter] \n \t --phen, -p : Custom format phenotype file [phen] \n \t --out, -o : Outputfile redirective (not recommanded) [out]"
 
-	for opt, arg in opts:
-		if opt=='-h':
-			print 'phenotype_reconstruction_and_correlation.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -o <output_file>'
-			sys.exit()		
-		elif opt in ("-s", "--seq"):
-			seq=arg
-		elif opt in ("-t", "--intree"):
-			intree=arg
-		elif opt in ("-f", "--seq_format"):
-			if arg=="phylip":
-				seq_format='iphylip'
-			elif arg=="fasta":
-				seq_format='fasta'
-			else:
-				print "\n** Fatal Error : Sequence format not supported !!! Kindly consider converting it into 'fasta' or 'phylip' format **"
-		elif opt in ("-i", "--iterations"):
-			iterations=arg
-		elif opt in ("-p", "--phen"):
-			phen=arg
-		elif opt in ("-o", "--out"):
-			out=arg
-			
+    for opt, arg in opts:
+        if opt=='-h':
+            print 'phenotype_reconstruction_and_correlation.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -o <output_file>'
+            sys.exit()        
+        elif opt in ("-s", "--seq"):
+            seq=arg
+        elif opt in ("-t", "--intree"):
+            intree=arg
+        elif opt in ("-f", "--seq_format"):
+            if arg=="phylip":
+                seq_format='iphylip'
+            elif arg=="fasta":
+                seq_format='fasta'
+            else:
+                print "\n** Fatal Error : Sequence format not supported !!! Kindly consider converting it into 'fasta' or 'phylip' format **"
+        elif opt in ("-i", "--iterations"):
+            iterations=arg
+        elif opt in ("-p", "--phen"):
+            phen=arg
+        elif opt in ("-o", "--out"):
+            out=arg
+            
 
 if __name__ == "__main__":
-	if sys.argv[1:]:
-		main(sys.argv[1:])
-	else:
-		print "\n USAGE: phenotype_reconstruction_and_correlation.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -o <output_file> \n \n \t --seq, -s : SNP sequence file [seq] \n \t --tree, -t : Newick tree [tree] \n \t --seq_format, -f : SNP sequence file format (phylip/fasta) [format] \n \t --iter, -i : Phenotype shuffling iterations [iter] \n \t --phen, -p : Custom format phenotype file [phen] \n \t --out, -o : Outputfile redirective (not recommanded) [out]"
-		sys.exit()
+    if sys.argv[1:]:
+        main(sys.argv[1:])
+    else:
+        print "\n USAGE: phenotype_reconstruction_and_correlation.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -o <output_file> \n \n \t --seq, -s : SNP sequence file [seq] \n \t --tree, -t : Newick tree [tree] \n \t --seq_format, -f : SNP sequence file format (phylip/fasta) [format] \n \t --iter, -i : Phenotype shuffling iterations [iter] \n \t --phen, -p : Custom format phenotype file [phen] \n \t --out, -o : Outputfile redirective (not recommanded) [out]"
+        sys.exit()
 
 #################################################################################
 
@@ -65,23 +65,23 @@ if __name__ == "__main__":
 
 #################################################################################
 
-ape=importr("ape")	# Required for phangorn
-ph=importr("phangorn")	# Phylogenetic operations in R
+ape=importr("ape")    # Required for phangorn
+ph=importr("phangorn")    # Phylogenetic operations in R
 
 print "All modules imported successfully"
 
 t = PhyloTree(intree, alignment=seq, alg_format=seq_format)     # Main tree containing entire sequence
-dtp = PhyloTree(intree)				 # Dummy tree for phenotype shuffling
+dtp = PhyloTree(intree)                 # Dummy tree for phenotype shuffling
 
 print "Tree file read successfully"
 
-phenfile=open(phen, "r")	# Phenotype file
+phenfile=open(phen, "r")    # Phenotype file
 phenlist=[]
 for line in phenfile.readlines():
     phenlist.append([line.split("\t")[0].strip(), line.split("\t")[1].strip()])
 phenfile.close()
 
-phenotype={}	# Dictionary containing species names and their phenotype values
+phenotype={}    # Dictionary containing species names and their phenotype values
 
 # Phenotype file can have three or four coloumns,
 # Three column containing file : | SPECIES NAME | PHENOTYPE MEAN | STANDARD DEVIATION |
@@ -113,19 +113,19 @@ shphenotype.append(phenotype.values())
 #########################################################################################
 print "Reading complete ancestral sequence data generated through R"
 
-rtree=PhyloTree(intree)	# Tree for "R" generated patterns
+rtree=PhyloTree(intree)    # Tree for "R" generated patterns
 tree=ape.read_tree(intree)
 
 rlist=[]
-ropf = open("/tmp/rdata.dat", "r")	# rdata.dat is a rgp.R generated output file
+ropf = open("/tmp/rdata.dat", "r")    # rdata.dat is a rgp.R generated output file
 for tab in ropf.readlines():
-	tab=tab.rstrip()
-	rlist.append(tab.split(" "))
+    tab=tab.rstrip()
+    rlist.append(tab.split(" "))
 ropf.close()
 
 ori=np.array(rlist)
 
-for node in rtree.traverse("postorder"):	# Patterns are being linked to their corresponding nodes
+for node in rtree.traverse("postorder"):    # Patterns are being linked to their corresponding nodes
     if node.is_leaf():
         node.add_features(data=[None for i in range(len(rlist[0])-1)])  # Its rlist[0]-1, because nucleotides begins with name of species
         for i in range(len(ori[:,0])):
@@ -137,7 +137,7 @@ for node in rtree.traverse("postorder"):	# Patterns are being linked to their co
 
 for node in rtree.traverse("postorder"):
     if node.is_leaf():
-        node.data=map(lambda x: x, rlist[node.rtoken-1][1:])	# Its the sequence after name
+        node.data=map(lambda x: x, rlist[node.rtoken-1][1:])    # Its the sequence after name
         node.up.rtoken=int(ph.Ancestors(tree, node.rtoken, "parent")[0])
     else:
         try:
@@ -179,7 +179,7 @@ for node in dtp.traverse("preorder"):
     else:
         node.add_features(phenvalue=None) 
 
-sflphen = []	# List to contain phenvalues for all the nodes after several shuffling attempts.
+sflphen = []    # List to contain phenvalues for all the nodes after several shuffling attempts.
 
 phrange(dtp)
 
@@ -216,13 +216,13 @@ for node in rtree.traverse("postorder"):
 
 dt=rtree
 
-pattern={}	# Contains all the possible patterns of SNPs across the tree, generated by rgp.R
+pattern={}    # Contains all the possible patterns of SNPs across the tree, generated by rgp.R
 
-sfldict={}	# Details of branches where nucleotide is changing and the corresponding p-value
+sfldict={}    # Details of branches where nucleotide is changing and the corresponding p-value
 
-bchanges={}	# Number of braches the nucleotide is changing and the corresponding pattern
+bchanges={}    # Number of braches the nucleotide is changing and the corresponding pattern
 
-#mafreq={}	# Stores minor allele frequency for individal SNP
+#mafreq={}    # Stores minor allele frequency for individal SNP
 
 counter=0
 for node in dt.traverse('preorder'):
@@ -296,7 +296,7 @@ for var in xrange(len(ref.data)):
 # Reading orignal sequence, evaluating by breaking into patterns
 ###############################################################################################
 print "Reading orignal sequence, evaluating by breaking into patterns"
-
+print "Total number of observed patters:", len(pattern)
 
 single=True
 
