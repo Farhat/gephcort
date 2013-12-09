@@ -286,12 +286,12 @@ for var in xrange(len(ref.data)):
             if 'NA' in dtemp:
                 pvalue=-1
             else:
-                pvalue=scipy.stats.norm.sf(abs(dtemp[0] - np.average(dtemp)) / np.std(dtemp))*2
+                pvalue=scipy.stats.norm.sf(abs(dtemp[0] - np.average(dtemp)) / np.std(dtemp))*2      
             sfldict[tp]=pvalue
         pattern[tdata]=pvalue
         bchanges[tdata]=len(tp)
 #        mafreq[tdata]=af
-        
+
 ###############################################################################################
 # Reading orignal sequence, evaluating by breaking into patterns
 ###############################################################################################
