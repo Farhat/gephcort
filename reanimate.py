@@ -78,7 +78,7 @@ print "Tree file read successfully"
 phenfile=open(phen, "r")	# Phenotype file
 phenlist=[]
 for line in phenfile.readlines():
-    phenlist.append([line.split("\t")[0].rstrip(), line.split("\t")[1].rstrip()])
+    phenlist.append([line.split("\t")[0].strip(), line.split("\t")[1].strip()])
 phenfile.close()
 
 phenotype={}	# Dictionary containing species names and their phenotype values
