@@ -282,11 +282,11 @@ for var in xrange(len(ref.data)):
                         tsum += abs(sflphen[index][temp[n][0]]-sflphen[index][temp[n][1]])
                     dtemp.append(math.pow((tsum/len(temp)),1))
                 else :
-                    dtemp.append('NA')
+                    dtemp.append('NA') # if all alleles are identical
             if 'NA' in dtemp:
                 pvalue=-1
             else:
-                pvalue=scipy.stats.norm.sf((dtemp[0] - np.average(dtemp)) / np.std(dtemp))
+                pvalue=scipy.stats.norm.sf(abs(dtemp[0] - np.average(dtemp)) / np.std(dtemp))*2
             sfldict[tp]=pvalue
         pattern[tdata]=pvalue
         bchanges[tdata]=len(tp)
