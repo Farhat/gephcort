@@ -6,7 +6,7 @@ Created on 29-Mar-2012
 '''
 #print "Initializing .. Loading parameters"
 
-import sys, getopt, scipy, math, numpy as np # system commands
+import sys, getopt, time, scipy, math, numpy as np # system commands
 from ete2 import PhyloTree    # To create a phylogenetic tree
 from random import shuffle      # Shuffle phenotype
 from scipy import stats         # To calculate p-value from z-score
@@ -64,6 +64,12 @@ if __name__ == "__main__":
 # o -- Output file redirective (not recommanded) [out]
 
 #################################################################################
+
+# Opening log file
+log=open("run_log.txt", "w")
+# Logging start time
+log.write("Start time: "+str(time.localtime()[0])+"-"+str(time.localtime()[2])+"-"+str(time.localtime()[1])+"\t"+str(time.localtime()[3])+":"+str(time.localtime()[4])+":"+str(time.localtime()[5])+"\n")
+
 
 ape=importr("ape")    # Required for phangorn
 ph=importr("phangorn")    # Phylogenetic operations in R
@@ -229,6 +235,8 @@ for node in dt.traverse('preorder'):
     node.add_features(counter=counter)
     counter += 1
         
+# Number of statistical tests being performed
+tests=0
 
 for var in xrange(len(ref.data)): 
     currentdata=[]
@@ -286,7 +294,8 @@ for var in xrange(len(ref.data)):
             if 'NA' in dtemp:
                 pvalue=-1
             else:
-                pvalue=scipy.stats.norm.sf(abs(dtemp[0] - np.average(dtemp)) / np.std(dtemp))*2      
+                pvalue=scipy.stats.norm.sf(abs(dtemp[0] - np.average(dtemp[1:])) / np.std(dtemp[1:]))*2
+                tests=tests+1   
             sfldict[tp]=pvalue
         pattern[tdata]=pvalue
         bchanges[tdata]=len(tp)
@@ -296,7 +305,6 @@ for var in xrange(len(ref.data)):
 # Reading orignal sequence, evaluating by breaking into patterns
 ###############################################################################################
 print "Reading orignal sequence, evaluating by breaking into patterns"
-print "Total number of observed patters:", len(pattern)
 
 single=True
 
@@ -346,5 +354,19 @@ except:
 for i in range(len(plist)):
     opf.write(str(i)+'\t'+str(plist[i])+'\n')
 opf.close()
+
+#############################################################################################
+# Writing Summary Log
+#############################################################################################
+
+log.write("End time: "+str(time.localtime()[0])+"-"+str(time.localtime()[2])+"-"+str(time.localtime()[1])+"\t"+str(time.localtime()[3])+":"+str(time.localtime()[4])+":"+str(time.localtime()[5])+"\n\n")
+log.write("Genotype file: "+seq+"\n")
+log.write("Newick file: "+intree+"\n")
+log.write("Phenotype file: "+phen+"\n")
+log.write("Iterations for permutation test: "+str(iterations)+"\n")
+log.write("Number of SNPs: "+str(len(ref.data))+"\n")
+log.write("Total number of observed patters: "+ str(len(pattern))+"\n")
+log.write("Number of statistical tests performed: "+str(tests))
+log.close()
 
 print "Operation complete"
