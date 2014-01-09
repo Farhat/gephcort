@@ -4,7 +4,7 @@ Created on 29-Mar-2012
 
 @author: amol
 '''
-#print "Initializing .. Loading parameters"
+print "Initializing .. Loading modules"
 
 import sys, getopt, time, scipy, math, numpy as np # system commands
 from ete2 import PhyloTree    # To create a phylogenetic tree
@@ -89,9 +89,14 @@ phenfile.close()
 
 phenotype={}    # Dictionary containing species names and their phenotype values
 
-# Phenotype file can have three or four coloumns,
-# Three column containing file : | SPECIES NAME | PHENOTYPE MEAN | STANDARD DEVIATION |
-# Three column conataing file :  | SPECIES NAME | PHENOTYPE MEAN |
+# Phenotype file should have two columns separated by tab containing taxa name
+# in the first column and a numerical phenotype value in the second
+#
+# dog1  3.2
+# dog2  4.4
+# cat2  4.5
+# .
+# .
 
 
 if len(phenlist[1])==3:
@@ -109,10 +114,11 @@ if len(phenlist[1])==2:
 else:
     print "Phenotype file format not supported, please go through the instructions"
 
-
-
+missing = 18    # phangorn value for missing genotype
 shphenotype=[]
 shphenotype.append(phenotype.values())
+
+
 
 #########################################################################################
 # Reading complete ancestral sequence data generated through R (In the form of pseudo-patterns)
@@ -216,8 +222,6 @@ for node in rtree.traverse("postorder"):
         if node.is_leaf():
             ref=node
             single=False
-        else: pass
-    else : pass
 
 
 dt=rtree
@@ -250,8 +254,6 @@ for var in xrange(len(ref.data)):
                 currentdata.append(token)
                 currentdict[node.data[var]]=token
                 token+=1                
-        else:
-            pass   
         
     tdata=tuple(currentdata)
 
@@ -269,33 +271,39 @@ for var in xrange(len(ref.data)):
         for node in dt.traverse('preorder'):       
             if not node.is_leaf():             
                 left, right = node.children            
-                if not left.data[var] == node.data[var]:         # Nucleotide substitution
-                    if not left.data[var] == 18 :
-                        temp.append([node.counter, left.counter])
-                if not right.data[var] == node.data[var]:         # Nucleotide substitution
-                    if not right.data[var] == 18 :
-                        temp.append([node.counter, right.counter])
+                if left.data[var] != node.data[var]:         # Nucleotide substitution
+                    if left.data[var] != missing :
+                        direction =  cmp(left.data[var]-node.data[var], 0)
+                        temp.append([node.counter, left.counter, direction])
+                if right.data[var] != node.data[var]:         # Nucleotide substitution
+                    if right.data[var] != missing :
+                        direction =  cmp(right.data[var]-node.data[var], 0)
+                        temp.append([node.counter, right.counter, direction])
         
         temp.sort()
         tpp=map(tuple, temp)
         tp=tuple(tpp)
         dtemp=[]
+
+        #calculate average if not already calculated
         try:
             pvalue=sfldict[tp]
         except:
             for index in xrange(len(sflphen)):
                 tsum=0.0
-                if not len(temp) == 0:
+                if len(temp) != 0:
                     for n in xrange(len(temp)):
-                        tsum += abs(sflphen[index][temp[n][0]]-sflphen[index][temp[n][1]])
-                    dtemp.append(math.pow((tsum/len(temp)),1))
+                        # The following line adds the changes in phenotype values
+                        # between ancestor and descendant times the direction
+                        tsum += temp[n][2]*(sflphen[index][temp[n][0]]-sflphen[index][temp[n][1]])
+                    dtemp.append(tsum/len(temp))
                 else :
                     dtemp.append('NA') # if all alleles are identical
             if 'NA' in dtemp:
                 pvalue=-1
             else:
                 pvalue=scipy.stats.norm.sf(abs(dtemp[0] - np.average(dtemp[1:])) / np.std(dtemp[1:]))*2
-                tests=tests+1   
+                tests += 1
             sfldict[tp]=pvalue
         pattern[tdata]=pvalue
         bchanges[tdata]=len(tp)
@@ -364,7 +372,7 @@ log.write("Genotype file: "+seq+"\n")
 log.write("Newick file: "+intree+"\n")
 log.write("Phenotype file: "+phen+"\n")
 log.write("Iterations for permutation test: "+str(iterations)+"\n")
-log.write("Number of SNPs: "+str(len(ref.data))+"\n")
+log.write("Number of SNPs: "+str(len(oriref.sequence))+"\n")
 log.write("Total number of observed patters: "+ str(len(pattern))+"\n")
 log.write("Number of statistical tests performed: "+str(tests))
 log.close()
