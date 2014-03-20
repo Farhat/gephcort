@@ -70,8 +70,11 @@ log=open("run_log.txt", "w")
 # Logging start time
 log.write("Start time: "+str(time.localtime()[0])+"-"+str(time.localtime()[2])+"-"+str(time.localtime()[1])+"\t"+str(time.localtime()[3])+":"+str(time.localtime()[4])+":"+str(time.localtime()[5])+"\n")
 
+ape_objects={"delta.plot":"delta_plot", "dist.dna":"dist_dna", "dist.nodes":"dist_nodes", "node.depth":"node_depth", 
+"node.depth.edgelength":"node_depth_edgelength","node.height":"node_height", "node.height.clado":"node_height_clado", 
+"prop.part":"prop_part"}
 
-ape=importr("ape")    # Required for phangorn
+ape=importr("ape", robject_translations = ape_objects)    # Required for phangorn
 ph=importr("phangorn")    # Phylogenetic operations in R
 
 print "All modules imported successfully"
@@ -118,8 +121,6 @@ missing = 18    # phangorn value for missing genotype
 shphenotype=[]
 shphenotype.append(phenotype.values())
 
-
-
 #########################################################################################
 # Reading complete ancestral sequence data generated through R (In the form of pseudo-patterns)
 #########################################################################################
@@ -165,37 +166,48 @@ for node in rtree.traverse("postorder"):
 print "Starting Phenotype manipulations"
                               
 def phrange(node):
-    ''' Recursive function to feed phenrange '''
+    ''' Recursive function '''
     left, right = node.children
-    if left.phenvalue is None:
+    if left.phenrange is None:
         phrange(left)
-    if right.phenvalue is None:
+    if right.phenrange is None:
         phrange(right)
+    
+    temp = []
+    nwrange = [None, None]
+    temp.append(left.phenrange)
+    temp.append(right.phenrange)
+    temp.sort()
 
-    if left.phenvalue < right.phenvalue :
+    if temp[1][0] < temp[0][1]:
+        nwrange[0] = temp[1][0]
+        nwrange[1] = min(temp[0][1], temp[1][1])
+    elif temp[1][0] > temp[0][1]:
+        nwrange[0] = temp[0][1]
+        nwrange[1] = temp[1][0]
+    else:
+        nwrange[0] = temp[1][0]
+        nwrange[1] = temp[0][1]
+    node.phenrange = nwrange
+    node.phenvalue=np.average(node.phenrange)
+    left.phenvalue=np.average(left.phenrange)
+    right.phenvalue=np.average(right.phenrange)
 
-        node.phenvalue=left.phenvalue + (dtp.get_distance(node, left)) * (right.phenvalue-left.phenvalue) / (dtp.get_distance(node, left) + dtp.get_distance(node, right))
-
-    elif left.phenvalue > right.phenvalue :
-        
-        node.phenvalue=right.phenvalue + (dtp.get_distance(node, right)) * (left.phenvalue-right.phenvalue) / (dtp.get_distance(node, left) + dtp.get_distance(node, right))
-    else :
-        node.phenvalue=left.phenvalue
 
 counter=0
 for node in dtp.traverse("preorder"):
     node.add_features(counter=counter)
     counter += 1
     if node.is_leaf():
-        node.add_features(phenvalue=phenotype[node.name][0])
+        node.add_features(phenrange=phenotype[node.name], phenvalue=None)
     else:
-        node.add_features(phenvalue=None) 
+        node.add_features(phenrange=None, phenvalue=None) 
 
-sflphen = []    # List to contain phenvalues for all the nodes after several shuffling attempts.
+sflphen = []        # List to contain phenvalues for all the nodes after several shuffling attempts.
 
 phrange(dtp)
 
-for p in range(int(iterations)):
+for p in xrange(int(iterations)):
     shuffle(shphenotype[0])
     sflphen.append([])
 
@@ -203,12 +215,12 @@ for p in range(int(iterations)):
     for node in dtp.traverse("preorder"):     # serves two purpose, 1) Add existing values to sflphen 2) reset tree phenrange attribites
         sflphen[p].append(node.phenvalue)
         if node.is_leaf():
-            node.phenvalue = shphenotype[0][index][0]
+            node.phenrange = shphenotype[0][index]
             index += 1 
         else:
-            node.phenvalue = None
+            node.phenrange = None
             
-    phrange(dtp)  
+    phrange(dtp)
 
 ##########################################################################################
 # Generating patterns from R output data
@@ -216,13 +228,11 @@ for p in range(int(iterations)):
 print "Generating patterns from R output data"
 
 single=True
-
 for node in rtree.traverse("postorder"):
     if single==True:
         if node.is_leaf():
             ref=node
             single=False
-
 
 dt=rtree
 
@@ -254,6 +264,8 @@ for var in xrange(len(ref.data)):
                 currentdata.append(token)
                 currentdict[node.data[var]]=token
                 token+=1                
+        else:
+            pass   
         
     tdata=tuple(currentdata)
 
@@ -273,32 +285,26 @@ for var in xrange(len(ref.data)):
                 left, right = node.children            
                 if left.data[var] != node.data[var]:         # Nucleotide substitution
                     if left.data[var] != missing :
-                        direction =  cmp(left.data[var]-node.data[var], 0)
-                        temp.append([node.counter, left.counter, direction])
+                        temp.append([node.counter, left.counter])
                 if right.data[var] != node.data[var]:         # Nucleotide substitution
                     if right.data[var] != missing :
-                        direction =  cmp(right.data[var]-node.data[var], 0)
-                        temp.append([node.counter, right.counter, direction])
+                        temp.append([node.counter, right.counter])
         
         temp.sort()
         tpp=map(tuple, temp)
         tp=tuple(tpp)
         dtemp=[]
-
-        #calculate average if not already calculated
         try:
             pvalue=sfldict[tp]
         except:
             for index in xrange(len(sflphen)):
                 tsum=0.0
-                if len(temp) != 0:
+                if not len(temp) == 0:
                     for n in xrange(len(temp)):
-                        # The following line adds the changes in phenotype values
-                        # between ancestor and descendant times the direction
-                        tsum += temp[n][2]*(sflphen[index][temp[n][0]]-sflphen[index][temp[n][1]])
-                    dtemp.append(tsum/len(temp))
+                        tsum += abs(sflphen[index][temp[n][0]]-sflphen[index][temp[n][1]])
+                    dtemp.append(math.pow((tsum/len(temp)),1))
                 else :
-                    dtemp.append('NA') # if all alleles are identical
+                    dtemp.append('NA')  # if all alleles are identical
             if 'NA' in dtemp:
                 pvalue=-1
             else:
@@ -308,7 +314,7 @@ for var in xrange(len(ref.data)):
         pattern[tdata]=pvalue
         bchanges[tdata]=len(tp)
 #        mafreq[tdata]=af
-
+        
 ###############################################################################################
 # Reading orignal sequence, evaluating by breaking into patterns
 ###############################################################################################
@@ -321,10 +327,6 @@ for node in t.traverse("postorder"):
         if node.is_leaf():
             oriref=node
             single=False
-        else: pass
-    else : pass
-
-#oriref=t.search_nodes(name="C57BL/6J")[0]
 
 plist=[None for var in xrange(len(oriref.sequence))]
 blist=[None for var in xrange(len(oriref.sequence))]
@@ -368,13 +370,16 @@ opf.close()
 #############################################################################################
 
 log.write("End time: "+str(time.localtime()[0])+"-"+str(time.localtime()[2])+"-"+str(time.localtime()[1])+"\t"+str(time.localtime()[3])+":"+str(time.localtime()[4])+":"+str(time.localtime()[5])+"\n\n")
-log.write("Genotype file: "+seq+"\n")
-log.write("Newick file: "+intree+"\n")
-log.write("Phenotype file: "+phen+"\n")
-log.write("Iterations for permutation test: "+str(iterations)+"\n")
-log.write("Number of SNPs: "+str(len(oriref.sequence))+"\n")
-log.write("Total number of observed patters: "+ str(len(pattern))+"\n")
-log.write("Number of statistical tests performed: "+str(tests))
+log.write("Genotype file\t"+seq+"\n")
+log.write("Newick file\t"+intree+"\n")
+log.write("Phenotype file\t"+phen+"\n")
+log.write("Iterations for permutation test\t"+str(iterations)+"\n")
+log.write("Number of SNPs\t"+str(len(oriref.sequence))+"\n")
+log.write("Total number of observed patters\t"+ str(len(pattern))+"\n")
+log.write("Number of statistical tests performed\t"+str(tests))
 log.close()
 
 print "Operation complete"
+
+#################################################################################################
+
