@@ -1,5 +1,5 @@
 
-JePhCort v1.0
+GePhCort v1.0
 Sept,02 2013
 
 
@@ -16,7 +16,7 @@ ______________________________________________________________________________
 
 > 1) Requirements
 
-	JePhCort is a combination of python and R scripts. Current version can be run
+	GePhCort is a combination of python and R scripts. Current version can be run
 on any Ubuntu based system with minimum of single free core and 1Gb or RAM.
 
 ------------------------------------------------------------------------------
@@ -54,22 +54,22 @@ on any Ubuntu based system with minimum of single free core and 1Gb or RAM.
 
 > 3) Compilation
 
-	JePhCort PACKAGE DO NOT REQUIRE ANY KIND OF COMPILATION.
+	GePhCort PACKAGE DO NOT REQUIRE ANY KIND OF COMPILATION.
 	ONCE THE DEPENDANCIES ARE SATISFIED, MAIN SCRIPTS ARE STANDALONE.
 
 ---------------------------------------------------------------------------------
 
 > 4) Usage
 
-	Running JePhCort using the terminal
+	Running GePhCort using the terminal
 		
 		Step 1. Reconstructing ancestral genotype given the sequence and newick tree file
 
-			$Rscript resurrect.R <alignment_seq_file> <newick_tree_file> <fasta/phylip> <ressurect_output.dat>
+			$Rscript resurrect.R <seq_file> <newick_tree_file> <fasta/phylip> <resurrect_output_file>
 
 		Setp 2. Reconstructing ancestral phenotype and performing correlation
 
-			$python reanimate.py -s <alignment_seq_file> -t <newick_tree_file> -i 1500 -f <fasta/phylip> -p <phenotype_file> -o <output_file.pvalue> -l <log_file>
+			$python reanimate.py -s <seq_file> -t <newick_tree_file> -i 1500 -f <fasta/phylip> -r <resurrect_output_file> -p <phenotype_file> -o <output_fiGe> -l <log_file>
 
 
 Note: The "-l" is optional
@@ -84,11 +84,11 @@ ________________________________________________________________________________
 
 		Step 1. Reconstructing ancestral genotype given the sequence and newick tree file
 
-			$Rscript resurrect.R example/example.phy example/example.newick phylip example/example_ressurect.out
+			$Rscript resurrect.R example/example.phy example/example.newick phylip example/example_resurrect.dat
 
 		Setp 2. Reconstructing ancestral phenotype and performing correlation
 
-			$python reanimate.py -s example/example.phy -t example/example.newick -f phylip -i 1500 -p example/example_phenotype.txt -r example/example_ressurect.out -o example/gephcort_output.txt -l example/run_log.txt
+			$python reanimate.py -s example/example.phy -t example/example.newick -f phylip -i 1500 -p example/example_phenotype.txt -r example/example_resurrect.dat -o example/gephcort_output.txt -l example/run_log.txt
 
 
 
