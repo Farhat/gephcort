@@ -1,4 +1,4 @@
 gephcort
 ========
 
-Genotype Phenotype correlation tool
+Genotype Phenotype Correlation Tool
