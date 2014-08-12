@@ -1,0 +1,10 @@
+Start time: 2014-12-8	17:8:25
+End time: 2014-12-8	17:9:0
+
+Genotype file	example/example.phy
+Newick file	example/example.newick
+Phenotype file	example/example_phenotype.txt
+Iterations for permutation test	500
+Number of SNPs	13139
+Total number of observed patters	5402
+Number of statistical tests performed	5179

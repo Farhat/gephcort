@@ -43,7 +43,7 @@ if("--help" %in% args) {
       --help                 - print this text
  
       Example:
-      ./test.R <alignment_seq_file> <newick_tree_file> <fasta/phylip> <ressurect_output.dat> \n\n")
+      ./test.R <alignment_seq_file> <newick_tree_file> <fasta/phylip> \n\n")
  
   q(save="no")
 }

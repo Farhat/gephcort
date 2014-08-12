@@ -397,7 +397,7 @@ try:
 except:
     opf=open("/tmp/gpresult.dat", "w")
 
-opf.write('#SNP_index'+'\t'+'p-value'+'\t'+'p.adjusted_FDR'+'\t'+'p.adjusted_Bonferroni'+'\n')
+opf.write('#SNP_index'+'\t'+'p-value'+'\t'+'p-adjusted_FDR'+'\t'+'p-adjusted_Bonferroni'+'\n')
 for i in range(len(plist)):
     if plist[i] in corrected:
         opf.write(str(i)+'\t'+str(plist[i])+'\t'+str(corrected[plist[i]][0])+'\t'+str(corrected[plist[i]][1])+'\n')
