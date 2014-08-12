@@ -1,5 +1,5 @@
-Start time: 2014-12-8	17:8:25
-End time: 2014-12-8	17:9:0
+Start time: 2014-12-8	22:32:15
+End time: 2014-12-8	22:32:50
 
 Genotype file	example/example.phy
 Newick file	example/example.newick

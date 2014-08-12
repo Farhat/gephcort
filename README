@@ -69,7 +69,10 @@ on any Ubuntu based system with minimum of single free core and 1Gb or RAM.
 
 		Setp 2. Reconstructing ancestral phenotype and performing correlation
 
-			$python reanimate.py -s <alignment_seq_file> -t <newick_tree_file> -i 1500 -f <fasta/phylip> -p <phenotype_file> -o <output_file.pvalue>
+			$python reanimate.py -s <alignment_seq_file> -t <newick_tree_file> -i 1500 -f <fasta/phylip> -p <phenotype_file> -o <output_file.pvalue> -l <log_file>
+
+
+Note: The "-l" is optional
 
 
 __________________________________________________________________________________
@@ -85,7 +88,7 @@ ________________________________________________________________________________
 
 		Setp 2. Reconstructing ancestral phenotype and performing correlation
 
-			$python reanimate.py -s example/example.phy -t example/example.newick -f phylip -i 1500 -p example/example_phenotype.txt -r example/example_ressurect.out -o example/gephcort_output.txt
+			$python reanimate.py -s example/example.phy -t example/example.newick -f phylip -i 1500 -p example/example_phenotype.txt -r example/example_ressurect.out -o example/gephcort_output.txt -l example/run_log.txt
 
 
 

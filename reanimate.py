@@ -19,16 +19,16 @@ Created on 29-Mar-2012
 import sys, getopt
 
 def main(argv):
-    global seq, intree, seq_format, iterations, phen, out, ressurect_file
+    global seq, intree, seq_format, iterations, phen, out, ressurect_file, log_file
 
     try:
-        opts, args = getopt.getopt(argv, "hs:t:f:i:p:o:r:", ['seq=', 'intree=', 'seq_format=', 'iterations=', 'phen=', 'out=', 'ressurect_file='])
+        opts, args = getopt.getopt(argv, "hs:t:f:i:p:o:r:l:", ['seq=', 'intree=', 'seq_format=', 'iterations=', 'phen=', 'out=', 'ressurect_file=', 'log_file='])
     except getopt.GetoptError:
-        print "\n USAGE: python reanimate.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -r <ressurect_output_file> -o <output_file> \n \n \t --seq, -s : SNP sequence file [seq] \n \t --tree, -t : Newick tree [tree] \n \t --seq_format, -f : SNP sequence file format (phylip/fasta) [format] \n \t --iter, -i : Phenotype shuffling iterations [iter] \n \t --phen, -p : Custom format phenotype file [phen] \n \t --out, -o : Output filename [out] \n \t --ressurect_file, -r : Output file obtained from ressurect.R for a given seq and tree file \n\n"
+        print "\n USAGE: python reanimate.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -r <ressurect_output_file> -o <output_file> \n \n \t --seq, -s : SNP sequence file \n \t --tree, -t : Newick tree \n \t --seq_format, -f : SNP sequence file format (phylip/fasta) \n \t --iter, -i : Phenotype shuffling iterations \n \t --phen, -p : Custom format phenotype file \n \t --out, -o : Output filename \n \t --ressurect_file, -r : Output file obtained from ressurect.R for a given seq and tree file \n \t --log_file, -l : Log file (Optional)\n"
 
     for opt, arg in opts:
         if opt=='-h':
-            print '\n\n python reanimate.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -r <ressurect_output_file> -o <output_file>\n\n'
+            print '\n\n python reanimate.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -r <ressurect_output_file> -o <output_file> -l <log_file> (Optional)\n\n'
             sys.exit()        
         elif opt in ("-s", "--seq"):
             seq=arg
@@ -49,13 +49,15 @@ def main(argv):
             out=arg
         elif opt in ("-r", "--ressurect_file"):
             ressurect_file=arg
+        elif opt in ("-l", "--log_file"):
+            log_file=arg
             
 
 if __name__ == "__main__":
     if sys.argv[1:]:
         main(sys.argv[1:])
     else:
-        print "\n USAGE: python reanimate.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -r <ressurect_output_file> -o <output_file> \n \n \t --seq, -s : SNP sequence file [seq] \n \t --tree, -t : Newick tree [tree] \n \t --seq_format, -f : SNP sequence file format (phylip/fasta) [format] \n \t --iter, -i : Phenotype shuffling iterations [iter] \n \t --phen, -p : Custom format phenotype file [phen] \n \t --out, -o : Output filename [out] \n \t --ressurect_file, -r : Output file obtained from ressurect.R \n\n"
+        print "\n USAGE: python reanimate.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -r <ressurect_output_file> -o <output_file> \n \n \t --seq, -s : SNP sequence file \n \t --tree, -t : Newick tree \n \t --seq_format, -f : SNP sequence file format (phylip/fasta) \n \t --iter, -i : Phenotype shuffling iterations \n \t --phen, -p : Custom format phenotype file \n \t --out, -o : Output filename \n \t --ressurect_file, -r : Output file obtained from ressurect.R for a given seq and tree file \n \t --log_file, -l : Log file (Optional) \n"
         sys.exit()
 
 
@@ -74,7 +76,10 @@ from sets import Set
 
 
 # Opening log file
-log=open("run_log.txt", "w")
+try:
+    log=open(log_file, "w")
+except:
+    log=open("gephcort_run.log", "w")
 # Logging start time
 log.write("Start time: "+str(time.localtime()[0])+"-"+str(time.localtime()[2])+"-"+str(time.localtime()[1])+"\t"+str(time.localtime()[3])+":"+str(time.localtime()[4])+":"+str(time.localtime()[5])+"\n")
 
