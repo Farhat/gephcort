@@ -1,13 +1,20 @@
+#!/usr/bin/python
 
 '''
+
+####################################################################################
+# This short script is a part of gephcort package v1.0
+# 
+# For any queries related to script, contact: Amol Kolte (amolkolte1989@gmail.com)
+####################################################################################
+
 Created on 29-Mar-2012
 
-@author: amol
 '''
 
-###############################################################################
+####################################################################################
 # Scanning Inputs
-###############################################################################
+####################################################################################
 
 import sys, getopt
 
@@ -65,17 +72,6 @@ from scipy import stats         # To calculate p-value from z-score
 from rpy2.robjects.packages import importr
 from sets import Set
 
-
-#################################################################################
-
-# s -- SNP sequence file [seq]
-# t -- Newick tree [tree]
-# f -- SNP sequence file format (phylip/fasta) [format]
-# i -- Phenotype shuffling iterations [iter]
-# p -- Custom format phenotype file [phen]
-# o -- Output file redirective (not recommanded) [out]
-
-#################################################################################
 
 # Opening log file
 log=open("run_log.txt", "w")
