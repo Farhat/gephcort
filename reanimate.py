@@ -16,7 +16,9 @@ Created on 29-Mar-2012
 # Scanning Inputs
 ####################################################################################
 
-import sys, getopt
+import sys, getopt, copy, pickle
+from multiprocessing import Process, Manager, Pool
+import time
 
 def main(argv):
     global seq, intree, seq_format, iterations, phen, out, ressurect_file, log_file
@@ -64,7 +66,8 @@ if __name__ == "__main__":
 ###############################################################################
 # Loading required modules
 ###############################################################################
-
+time_elapsed = {}
+start_time = time.time()
 print "Initializing .. Loading modules"
 
 import time, scipy, math, numpy as np # system commands
@@ -137,7 +140,8 @@ shphenotype.append(phenotype.values())
 #########################################################################################
 # Reading complete ancestral sequence data generated through R (In the form of pseudo-patterns)
 #########################################################################################
-print "Reading complete ancestral sequence data generated through R"
+print "Reading complete ancestral sequence data generated through R " + str(time.time() - start_time)
+start_time = time.time()
 
 rtree=PhyloTree(intree)    # Tree for "R" generated patterns
 tree=ape.read_tree(intree)
@@ -176,10 +180,13 @@ for node in rtree.traverse("postorder"):
 ###############################################################################################
 # Phenotype manipulations
 ###############################################################################################
-print "Starting Phenotype manipulations"
+print "Starting Phenotype manipulations " + str(time.time() - start_time)
+start_time = time.time()
+
                               
 def phrange(node):
     ''' Recursive function '''
+
     left, right = node.children
     if left.phenrange is None:
         phrange(left)
@@ -202,12 +209,14 @@ def phrange(node):
         nwrange[0] = temp[1][0]
         nwrange[1] = temp[0][1]
     node.phenrange = nwrange
-    node.phenvalue=np.average(node.phenrange)
-    left.phenvalue=np.average(left.phenrange)
-    right.phenvalue=np.average(right.phenrange)
+    node.phenvalue = np.average(node.phenrange)
+    left.phenvalue = np.average(left.phenrange)
+    right.phenvalue = np.average(right.phenrange)
 
 
-counter=0
+
+counter = 0
+
 for node in dtp.traverse("preorder"):
     node.add_features(counter=counter)
     counter += 1
@@ -216,6 +225,13 @@ for node in dtp.traverse("preorder"):
     else:
         node.add_features(phenrange=None, phenvalue=None) 
 
+
+pickle.dump(dtp, open("dtp.p","wb"), pickle.HIGHEST_PROTOCOL)
+
+
+
+        # List to contain phenvalues for all the nodes after several shuffling attempts.
+"""
 sflphen = []        # List to contain phenvalues for all the nodes after several shuffling attempts.
 
 phrange(dtp)
@@ -234,53 +250,173 @@ for p in xrange(int(iterations)):
             node.phenrange = None
             
     phrange(dtp)
+"""
+def iterate(dtp):
+   dtp = pickle.load(open("dtp.p","rb"))
+   #shphenotype_iteration = shphenotype[0][:]
+   shphenotype_iteration = [x for x in shphenotype[0]]
+   shuffle(shphenotype_iteration)
+
+   values = []
+   
+   index = 0 
+   for node in dtp.traverse("preorder"):     # serves two purpose, 1) Add existing values to sflphen 2) reset tree phenrange attribites
+       if node.is_leaf():
+           node.phenrange = shphenotype_iteration[index]
+           index += 1 
+   phrange(dtp)
+   index = 0
+   for node in dtp.traverse("preorder"):     # serves two purpose, 1) Add existing values to sflphen 2) reset tree phenrange attribites
+       values.append(node.phenvalue)
+   return values
+
+p = Pool(4)
+trees = [x for x in xrange(int(iterations))]
+
+#p.map(iterate, trees)  
+sflphen = list(p.imap_unordered(iterate, trees))
+p.close()
+p.join()  
+
+"""
+sflphen = []
+phrange(dtp)
+
+
+for p in xrange(int(iterations)):
+    shuffle(shphenotype[0])
+    sflphen.append([])
+
+    index = 0   
+    for node in dtp.traverse("preorder"):     # serves two purpose, 1) Add existing values to sflphen 2) reset tree phenrange attribites
+        sflphen[p].append(node.phenvalue)
+        if node.is_leaf():
+            node.phenrange = shphenotype[0][index]
+            index += 1 
+        else:
+            node.phenrange = None
+    print sflphen[p]
+    phrange(dtp)
+
+
+print "Permutation testing start" + str(time.time() - start_time)
+start_time = time.time()
+
+def generate(dtp, iterations):
+    print pickle.load(open("dtp.p", "rb"))  
+    for i in xrange(iterations):
+        yield pickle.load(open("dtp.p", "rb"))
+
+def iterate_2(copy_dtp):
+   # do not modify dtp.
+   shphenotype_iteration = shphenotype[0][:]
+   shuffle(shphenotype_iteration)
+   values = []
+   phrange(copy_dtp)
+   index = 0   
+   for node in copy_dtp.traverse("preorder"):     # serves two purpose, 1) Add existing values to sflphen 2) reset tree phenrange attribites
+       values.append(node.phenvalue)
+       if node.is_leaf():
+           node.phenrange = shphenotype_iteration[index]
+           index += 1 
+       else:
+           node.phenrange = None
+   print values
+
+def iterate(procnum, sflphen):
+   # do not modify dtp.
+   copy_dtp = pickle.load(open("dtp.p", "rb"))
+   print copy_dtp
+   shphenotype_iteration = shphenotype[0][:]
+   shuffle(shphenotype_iteration)
+   values = []
+   phrange(copy_dtp)
+   index = 0   
+   for node in copy_dtp.traverse("preorder"):     # serves two purpose, 1) Add existing values to sflphen 2) reset tree phenrange attribites
+       values.append(node.phenvalue)
+       if node.is_leaf():
+           node.phenrange = shphenotype_iteration[index]
+           index += 1 
+       else:
+           node.phenrange = None
+   print values
+   sflphen.append(values)
+
+
+manager = Manager()
+accumulator = manager.list()
+
+#for i in xrange(int(iterations)):
+#   p = Process(target = iterate, args = (i, accumulator))
+#   p.start()
+#   p.join()
+
+pool = [ Process(target = iterate_2, args = (i, accumulator)) for i in xrange(int(iterations))]
+
+for p in pool: p.start()
+for p in pool: p.join()
+
+sflphen = []
+
+for i in accumulator:
+    sflphen.append(i)
+
+pool = Pool(4)
+print pool.map(iterate_2, generate(dtp, int(iterations)))
+
+"""
+time_elapsed['Permutation test stuff done.'] = time.time() - start_time
+
 
 ##########################################################################################
 # Generating patterns from R output data
 ##########################################################################################
-print "Generating patterns from R output data"
+print "Generating patterns from R output data " + str(time.time() - start_time)
+start_time = time.time()
 
-single=True
+
+single = True
 for node in rtree.traverse("postorder"):
-    if single==True:
+    if single == True:
         if node.is_leaf():
-            ref=node
-            single=False
+            ref = node
+            single = False
 
-dt=rtree
+dt = rtree
 
-pattern={}    # Contains all the possible patterns of SNPs across the tree, generated by rgp.R
+pattern = {}    # Contains all the possible patterns of SNPs across the tree, generated by rgp.R
 
-sfldict={}    # Details of branches where nucleotide is changing and the corresponding p-value
+sfldict = {}    # Details of branches where nucleotide is changing and the corresponding p-value
 
-bchanges={}    # Number of braches the nucleotide is changing and the corresponding pattern
+bchanges = {}    # Number of braches the nucleotide is changing and the corresponding pattern
 
 #mafreq={}    # Stores minor allele frequency for individal SNP
 
-counter=0
+counter = 0
 for node in dt.traverse('preorder'):
-    node.add_features(counter=counter)
+    node.add_features(counter = counter)
     counter += 1
         
 # Number of statistical tests being performed
-tests=0
+tests = 0
 
 for var in xrange(len(ref.data)): 
-    currentdata=[]
-    currentdict={"18" : 18}
+    currentdata = []
+    currentdict = {"18" : 18}
     token=0
     for node in dt.traverse("postorder"):
+
         if node.is_leaf():
             try:
                 currentdata.append(currentdict[node.data[var]])        # Pattern recognition
             except:
                 currentdata.append(token)
-                currentdict[node.data[var]]=token
-                token+=1                
+                currentdict[node.data[var]] = token
+                token += 1                
         else:
             pass   
         
-    tdata=tuple(currentdata)
+    tdata = tuple(currentdata)
 
 #    if tdata.count(0) < tdata.count(1):
 #        af=tdata.count(0)*100/(tdata.count(0)+tdata.count(1))
@@ -290,7 +426,7 @@ for var in xrange(len(ref.data)):
 #        af=50
 
     try:
-        pvalue=pattern[tdata]               
+        pvalue = pattern[tdata]               
     except:
         temp=[]
         for node in dt.traverse('preorder'):       
@@ -311,35 +447,36 @@ for var in xrange(len(ref.data)):
             pvalue=sfldict[tp]
         except:
             for index in xrange(len(sflphen)):
-                tsum=0.0
+                tsum = 0.0
                 if not len(temp) == 0:
                     for n in xrange(len(temp)):
-                        tsum += abs(sflphen[index][temp[n][0]]-sflphen[index][temp[n][1]])
+                        tsum += abs(sflphen[index][temp[n][0]] - sflphen[index][temp[n][1]])
                     dtemp.append(math.pow((tsum/len(temp)),1))
                 else :
                     dtemp.append('NA')  # if all alleles are identical
             if 'NA' in dtemp:
-                pvalue=-1
+                pvalue = -1
             else:
-                pvalue=scipy.stats.norm.sf(abs(dtemp[0] - np.average(dtemp[1:])) / np.std(dtemp[1:]))*2
+                pvalue = scipy.stats.norm.sf(abs(dtemp[0] - np.average(dtemp[1:])) / np.std(dtemp[1:]))*2
                 tests += 1
-            sfldict[tp]=pvalue
-        pattern[tdata]=pvalue
-        bchanges[tdata]=len(tp)
+            sfldict[tp] = pvalue
+        pattern[tdata] = pvalue
+        bchanges[tdata] = len(tp)
 #        mafreq[tdata]=af
-        
 ###############################################################################################
 # Reading orignal sequence, evaluating by breaking into patterns
 ###############################################################################################
-print "Reading orignal sequence, evaluating by breaking into patterns"
+print "Reading orignal sequence, evaluating by breaking into patterns " + str(time.time() - start_time)
+start_time = time.time()
+
 
 single=True
 
 for node in t.traverse("postorder"):
-    if single==True:
+    if single == True:
         if node.is_leaf():
-            oriref=node
-            single=False
+            oriref = node
+            single = False
 
 plist=[None for var in xrange(len(oriref.sequence))]
 blist=[None for var in xrange(len(oriref.sequence))]
@@ -368,7 +505,6 @@ for var in xrange(len(oriref.sequence)):
 #        maflist[var]=mafreq[tdata]
     except:
         print "Patterns missing"
-
 #############################################################################################
 # Performing multiple correction
 #############################################################################################
