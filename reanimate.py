@@ -17,8 +17,7 @@ Created on 29-Mar-2012
 ####################################################################################
 
 import sys, getopt, copy, pickle
-from multiprocessing import Process, Manager, Pool, Queue
-from threading import RLock
+from multiprocessing import Pool
 import time
 import redis
 
@@ -27,10 +26,10 @@ REDIS = redis.Redis("localhost")
 
 
 def main(argv):
-    global seq, intree, seq_format, iterations, phen, out, ressurect_file, log_file
+    global seq, intree, seq_format, iterations, phen, out, ressurect_file, log_file, num_cores
 
     try:
-        opts, args = getopt.getopt(argv, "hs:t:f:i:p:o:r:l:", ['seq=', 'intree=', 'seq_format=', 'iterations=', 'phen=', 'out=', 'ressurect_file=', 'log_file='])
+        opts, args = getopt.getopt(argv, "hs:t:f:i:p:o:r:l:c:", ['seq=', 'intree=', 'seq_format=', 'iterations=', 'phen=', 'out=', 'ressurect_file=', 'log_file=', "cores="])
     except getopt.GetoptError:
         print "\n USAGE: python reanimate.py -s <seq_file> -t <tree_file> -f <format(fasta/phylip)> -i <phen_iterations> -p <phen_file> -r <ressurect_output_file> -o <output_file> \n \n \t --seq, -s : SNP sequence file \n \t --tree, -t : Newick tree \n \t --seq_format, -f : SNP sequence file format (phylip/fasta) \n \t --iter, -i : Phenotype shuffling iterations \n \t --phen, -p : Custom format phenotype file \n \t --out, -o : Output filename \n \t --ressurect_file, -r : Output file obtained from ressurect.R for a given seq and tree file \n \t --log_file, -l : Log file (Optional)\n"
 
@@ -59,6 +58,8 @@ def main(argv):
             ressurect_file=arg
         elif opt in ("-l", "--log_file"):
             log_file=arg
+        elif opt in ("-c", "--cores"):
+        	num_cores = int(arg)
             
 
 if __name__ == "__main__":
@@ -74,7 +75,10 @@ if __name__ == "__main__":
 ###############################################################################
 time_elapsed = {}
 start_time = time.time()
+ssss = time.time()
 print "Initializing .. Loading modules"
+if num_cores == None:
+	num_cores = 1
 
 import time, scipy, math, numpy as np # system commands
 from ete2 import PhyloTree    # To create a phylogenetic tree
@@ -238,7 +242,7 @@ pickle.dump(dtp, open("dtp.p","wb"), pickle.HIGHEST_PROTOCOL)
 
 
         # List to contain phenvalues for all the nodes after several shuffling attempts.
-"""
+
 sflphen = []        # List to contain phenvalues for all the nodes after several shuffling attempts.
 
 phrange(dtp)
@@ -257,34 +261,6 @@ for p in xrange(int(iterations)):
             node.phenrange = None
             
     phrange(dtp)
-"""
-def iterate(dtp):
-   dtp = pickle.load(open("dtp.p","rb"))
-   #shphenotype_iteration = shphenotype[0][:]
-   shphenotype_iteration = [x for x in shphenotype[0]]
-   shuffle(shphenotype_iteration)
-
-   values = []
-   
-   index = 0 
-   for node in dtp.traverse("preorder"):     # serves two purpose, 1) Add existing values to sflphen 2) reset tree phenrange attribites
-       if node.is_leaf():
-           node.phenrange = shphenotype_iteration[index]
-           index += 1 
-   phrange(dtp)
-   index = 0
-   for node in dtp.traverse("preorder"):     # serves two purpose, 1) Add existing values to sflphen 2) reset tree phenrange attribites
-       values.append(node.phenvalue)
-   return values
-
-p = Pool(4)
-trees = [x for x in xrange(int(iterations))]
-
-#p.map(iterate, trees)  
-sflphen = list(p.imap_unordered(iterate, trees))
-p.close()
-p.join()  
-
 
 ##########################################################################################
 # Generating patterns from R output data
@@ -307,9 +283,6 @@ sfldict = {}    # Details of branches where nucleotide is changing and the corre
 bchanges = {}    # Number of braches the nucleotide is changing and the corresponding pattern
 
 #mafreq={}    # Stores minor allele frequency for individal SNP
-Q = Queue()
-
-
 
 counter = 0
 for node in dt.traverse('preorder'):
@@ -317,6 +290,8 @@ for node in dt.traverse('preorder'):
     counter += 1
 ###########################################################################################################################################################################################################################
 # adding the values to be processed in the Queue.
+ptns = set([])
+total_queue_size = 0
 for var in xrange(len(ref.data)):
 
     currentdata = []
@@ -336,7 +311,7 @@ for var in xrange(len(ref.data)):
             pass   
     tdata = tuple(currentdata)
 
-    Q.put(str(tdata))
+    total_queue_size += 1
 ###########################################################################################################################################################################################################################
 
 # prefix dict for lookup in redis.
@@ -345,28 +320,22 @@ prefix_dict = {}
 prefix_dict['pattern'] = 'pat'
 prefix_dict['sfldict'] = 'sfl'
 prefix_dict['bchanges'] = 'bch'
+
 tests = 0
-def compute(x):
-    tdata = str(Q.get())
+
+def compute(input_data):
+    tdata = str(input_data[0])
+    temp = input_data[1]
     key = prefix_dict['pattern'] + tdata
     if REDIS.get(key) == None:
-        temp = []
-        for node in dt.traverse('preorder'):       
-            if not node.is_leaf():             
-                left, right = node.children            
-                if left.data[x] != node.data[x]:         # Nucleotide substitution
-                    if left.data[x] != missing :
-                        temp.append([node.counter, left.counter])
-                if right.data[x] != node.data[x]:         # Nucleotide substitution
-                    if right.data[x] != missing :
-                        temp.append([node.counter, right.counter])
-        
         temp.sort()
         tpp = map(tuple, temp)
         tp = str(tuple(tpp))
         dtemp = []
         sfl_key = prefix_dict['sfldict'] + tp
         sfl_value = REDIS.get(sfl_key)
+        if x == 9:
+            print tdata
         if sfl_value == None:
             for index in xrange(len(sflphen)):
                 tsum = 0.0
@@ -381,20 +350,54 @@ def compute(x):
                 pvalue = -1
             else:
                 pvalue = scipy.stats.norm.sf(abs(dtemp[0] - np.average(dtemp[1:])) / np.std(dtemp[1:])) * 2
-
-            REDIS.set(prefix_dict['sfldict'] + tp, pvalue)
-
+                #pvalue=scipy.stats.ttest_1samp(dtemp[1:], dtemp[0])[1]
             
+            REDIS.set(prefix_dict['sfldict'] + tp, pvalue)
         else:
             pvalue = float(sfl_value)
         REDIS.set(prefix_dict['pattern'] + tdata, pvalue)
         REDIS.set(prefix_dict['bchanges'] + tdata, len(tp))
 
+temp_ray = []
 
-p = Pool(4)
-p.map(compute, range(Q.qsize()))
+for x in range(Q.qsize()):
+    temp = []
+    currentdata = []
+    currentdict = {"18" : 18}
+
+    token = 0
+    for node in dt.traverse("postorder"):
+       
+        if node.is_leaf():
+            try:
+                currentdata.append(currentdict[node.data[x]])        # Pattern recognition
+            except:
+                currentdata.append(token)
+                currentdict[node.data[x]] = token
+                token += 1                
+        else:
+            pass   
+    tdata = tuple(currentdata)
+    for node in dt.traverse('preorder'):       
+            if not node.is_leaf():             
+                left, right = node.children   
+                if left.data[x] != node.data[x]:         # Nucleotide substitution
+                    if left.data[x] != 18 :
+                        temp.append([node.counter, left.counter])
+                if right.data[x] != node.data[x]:         # Nucleotide substitution
+                    if right.data[x] != 18 :
+                        temp.append([node.counter, right.counter])
+    
+    temp_ray.append((tdata, temp))
+p = Pool(num_cores)
+
+p.map(compute, temp_ray)
+
+
 p.close()
-p.join()  
+p.join() 
+Q.close()
+Q.join_thread()
 ###############################################################################################
 # Reading orignal sequence, evaluating by breaking into patterns
 ###############################################################################################
@@ -443,7 +446,7 @@ for var in xrange(len(oriref.sequence)):
 #############################################################################################
 # Performing multiple correction
 #############################################################################################
-
+print plist.count(-1)
 uniq_plist=Set(plist)
 
 try:
@@ -490,8 +493,7 @@ log.write("Number of SNPs\t"+str(len(oriref.sequence))+"\n")
 log.write("Total number of observed patters\t"+ str(len(pattern))+"\n")
 log.write("Number of statistical tests performed\t"+str(tests))
 log.close()
-
-print "Operation complete", time.time() - begin_tm
+print "Operation complete", time.time() - ssss
 
 #################################################################################################
 
