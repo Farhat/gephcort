@@ -29,6 +29,13 @@ args <- commandArgs(TRUE)
 if(length(args) < 4) {
   args <- c("--help")
 }
+
+# Installation code.
+if (!require("quadprog")) install.packages("quadprog")
+if (!require("Matrix")) install.packages("Matrix")
+if (!require("igraph")) install.packages("igraph")
+if (!require("ape")) install.packages("ape")
+if (!require("phangorn")) install.packages("phangorn")
  
 ## Help section
 if("--help" %in% args) {
