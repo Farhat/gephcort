@@ -334,8 +334,6 @@ def compute(input_data):
         dtemp = []
         sfl_key = prefix_dict['sfldict'] + tp
         sfl_value = REDIS.get(sfl_key)
-        if x == 9:
-            print tdata
         if sfl_value == None:
             for index in xrange(len(sflphen)):
                 tsum = 0.0
@@ -360,7 +358,7 @@ def compute(input_data):
 
 temp_ray = []
 
-for x in range(Q.qsize()):
+for x in range(total_queue_size):
     temp = []
     currentdata = []
     currentdict = {"18" : 18}
@@ -389,15 +387,14 @@ for x in range(Q.qsize()):
                         temp.append([node.counter, right.counter])
     
     temp_ray.append((tdata, temp))
+
 p = Pool(num_cores)
 
 p.map(compute, temp_ray)
 
-
 p.close()
 p.join() 
-Q.close()
-Q.join_thread()
+
 ###############################################################################################
 # Reading orignal sequence, evaluating by breaking into patterns
 ###############################################################################################
@@ -446,7 +443,6 @@ for var in xrange(len(oriref.sequence)):
 #############################################################################################
 # Performing multiple correction
 #############################################################################################
-print plist.count(-1)
 uniq_plist=Set(plist)
 
 try:
