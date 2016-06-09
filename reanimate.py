@@ -241,7 +241,7 @@ pickle.dump(dtp, open("dtp.p","wb"), pickle.HIGHEST_PROTOCOL)
 
 
 
-        # List to contain phenvalues for all the nodes after several shuffling attempts.
+# List to contain phenvalues for all the nodes after several shuffling attempts.
 
 sflphen = []        # List to contain phenvalues for all the nodes after several shuffling attempts.
 
@@ -288,7 +288,7 @@ counter = 0
 for node in dt.traverse('preorder'):
     node.add_features(counter=counter)
     counter += 1
-###########################################################################################################################################################################################################################
+############################################################################################################################################################################################################
 # adding the values to be processed in the Queue.
 ptns = set([])
 total_queue_size = 0
@@ -312,7 +312,7 @@ for var in xrange(len(ref.data)):
     tdata = tuple(currentdata)
 
     total_queue_size += 1
-###########################################################################################################################################################################################################################
+###########################################################################################################################################################################################################
 
 # prefix dict for lookup in redis.
 
